@@ -1,69 +1,51 @@
-"""
-Copyright (c) 2020, Battelle Memorial Institute
-All rights reserved.
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-The views and conclusions contained in the software and documentation are those
-of the authors and should not be interpreted as representing official policies,
-either expressed or implied, of the FreeBSD Project.
-This material was prepared as an account of work sponsored by an agency of the
-United States Government. Neither the United States Government nor the United
-States Department of Energy, nor Battelle, nor any of their employees, nor any
-jurisdiction or organization that has cooperated in th.e development of these
-materials, makes any warranty, express or implied, or assumes any legal
-liability or responsibility for the accuracy, completeness, or usefulness or
-any information, apparatus, product, software, or process disclosed, or
-represents that its use would not infringe privately owned rights.
-Reference herein to any specific commercial product, process, or service by
-trade name, trademark, manufacturer, or otherwise does not necessarily
-constitute or imply its endorsement, recommendation, or favoring by the
-United States Government or any agency thereof, or Battelle Memorial Institute.
-The views and opinions of authors expressed herein do not necessarily state or
-reflect those of the United States Government or any agency thereof.
+# -*- coding: utf-8 -*- {{{
+# ===----------------------------------------------------------------------===
+#
+#                 Installable Component of Eclipse VOLTTRON
+#
+# ===----------------------------------------------------------------------===
+#
+# Copyright 2022 Battelle Memorial Institute
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy
+# of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# ===----------------------------------------------------------------------===
+# }}}
 
-PACIFIC NORTHWEST NATIONAL LABORATORY
-operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
-under Contract DE-AC05-76RL01830
-"""
-
-import sys
-import logging
 import dateutil.tz
-from datetime import timedelta as td
-from dateutil import parser
 import gevent
-from volttron.platform.agent import utils
-from volttron.platform.jsonapi import dumps
-from volttron.platform.messaging import (headers as headers_mod, topics)
-from volttron.platform.agent.math_utils import mean
-from volttron.platform.agent.utils import setup_logging, format_timestamp
-from volttron.platform.vip.agent import Agent, Core
-from volttron.platform.jsonrpc import RemoteError
-from .diagnostics import common
-from .diagnostics.sat_aircx import SupplyTempAIRCx
-from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
-from .diagnostics.stcpr_aircx import DuctStaticAIRCx
+import logging
+import sys
 
-__version__ = "2.0.0"
+from datetime import datetime, timedelta as td
+from dateutil import parser
+from typing import Optional
+
+from volttron.client.messaging import (headers as headers_mod, topics)
+from volttron.client.vip.agent import Agent, Core
+from volttron.utils import format_timestamp, load_config, setup_logging, vip_main
+from volttron.utils.jsonapi import dumps
+from volttron.utils.jsonrpc import RemoteError
+from volttron.utils.math_utils import mean
+
+from airside.diagnostics import common
+from airside.diagnostics.sat_aircx import SupplyTempAIRCx
+from airside.diagnostics.schedule_reset_aircx import SchedResetAIRCx
+from airside.diagnostics.stcpr_aircx import DuctStaticAIRCx
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s   %(levelname)-8s %(message)s",
                     datefmt="%m-%d-%y %H:%M:%S")
 
 
@@ -92,7 +74,7 @@ class AirsideAgent(Agent):
         self.sat_stpt_name = ""
         self.zn_damper_name = ""
         self.zn_reheat_name = ""
-        self.initialize_time = None
+        self.initialize_time: Optional[datetime] = None
         self.timezone = ""
 
         # int attributes
@@ -135,7 +117,7 @@ class AirsideAgent(Agent):
         self.missing_data = []
         self.units = []
         self.arguments = []
-        self.point_mapping = []
+        self.point_mapping = {}
         self.monday_sch = []
         self.tuesday_sch = []
         self.wednesday_sch = []
@@ -191,7 +173,7 @@ class AirsideAgent(Agent):
         Use volttrons config reader to grab and parse out configuration file
         config_path: The path to the agents configuration file
         """
-        file_config = utils.load_config(config_path)
+        file_config = load_config(config_path)
         default_config = self.setup_default_config()
         if file_config:
             self.config = file_config
@@ -204,7 +186,7 @@ class AirsideAgent(Agent):
     def setup_device_list(self):
         """Setup the device subscriptions"""
         self.analysis_name = self.config.get("analysis_name", "AirsideAIRCx")
-        self.actuation_mode = self.config.get("actuation_mode", "passive")
+        self.actuation_mode = True if str(self.config.get("actuation_mode", "passive")).lower() == "active" else False
         self.timezone = self.config.get("local_timezone", "US/Pacific")
         self.interval = self.config.get("interval", 60)
         self.missing_data_threshold = self.config.get("missing_data_threshold", 15.0) / 100.0
@@ -431,7 +413,7 @@ class AirsideAgent(Agent):
 
     def get_point_mapping_or_none(self, name):
         """ Get the item from the point mapping, or return None
-        return mixed (string or float or int or dic
+        return mixed (string or float or int or dict
         """
         value = self.point_mapping.get(name, None)
         if value is not None and isinstance(value, str):
@@ -481,7 +463,7 @@ class AirsideAgent(Agent):
             self.unocc_stp_thr = 0.2
 
             self.stcpr_retuning = 0.15
-            self.sat_retuning = 1
+            self.sat_retuning = 1.0
 
         self.data_window = td(minutes=self.data_window) if self.data_window is not None else None
         self.no_required_data = int(self.no_required_data)
@@ -489,11 +471,6 @@ class AirsideAgent(Agent):
         self.high_sf_thr = float(self.high_sf_thr)
         self.warm_up_time = td(minutes=self.warm_up_time)
         self.initialize_time = None
-
-        if self.actuation_mode.lower() == "active":
-            self.actuation_mode = True
-        else:
-            self.actuation_mode = False
 
         if self.fan_sp_name is None and self.fan_status_name is None:
             _log.error("SupplyFanStatus or SupplyFanSpeed are required to verify AHU status.")
@@ -879,16 +856,16 @@ class AirsideAgent(Agent):
             point_path = base_actuator_path(unit=device, point=point)
             try:
                 _log.info("Set point {} to {}".format(point_path, value))
-                self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path, value).get(timeout=15)
+                self.vip.rpc.call("platform.actuator", "set_point", "rcx", point_path, value).get(timeout=15)
             except RemoteError as ex:
                 _log.warning("Failed to set {} to {}: {}".format(point_path, value, str(ex)))
                 continue
 
 
-def main(argv=sys.argv):
+def main(argv:type(sys.argv)):
     """Main method called by the app."""
     try:
-        utils.vip_main(AirsideAgent)
+        vip_main(AirsideAgent)
     except Exception as exception:
         _log.exception("unhandled exception")
         _log.error(repr(exception))
@@ -897,7 +874,7 @@ def main(argv=sys.argv):
 if __name__ == "__main__":
     """Entry point for script"""
     try:
-        sys.exit(main())
+        sys.exit(main(argv=sys.argv))
     except KeyboardInterrupt:
         pass
 
