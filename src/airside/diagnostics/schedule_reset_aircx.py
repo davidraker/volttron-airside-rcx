@@ -26,8 +26,12 @@ import logging
 
 from dateutil.parser import parse
 
-from volttron.utils import setup_logging
-from volttron.utils.math_utils import mean
+from importlib.metadata import distribution, PackageNotFoundError
+try:
+    distribution('volttron-core')
+    from volttron.utils.math_utils import mean
+except PackageNotFoundError:
+    from volttron.platform.agent.math_utils import mean
 
 from airside.diagnostics import common
 
@@ -39,10 +43,7 @@ DX = "/diagnostic message"
 INCONSISTENT_DATE = -89.2
 INSUFFICIENT_DATA = -79.2
 
-setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s   %(levelname)-8s %(message)s",
-                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 class SchedResetAIRCx(object):

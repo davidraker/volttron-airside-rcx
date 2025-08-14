@@ -26,8 +26,13 @@ import logging
 
 from datetime import timedelta as td
 
-from volttron.utils import setup_logging
-from volttron.utils.math_utils import mean
+from importlib.metadata import distribution, PackageNotFoundError
+try:
+    distribution('volttron-core')
+    from volttron.utils.math_utils import mean
+except PackageNotFoundError:
+    from volttron.platform.agent.math_utils import mean
+
 
 FAN_OFF = -99.3
 DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
@@ -40,10 +45,7 @@ SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
 dx_offsets = {SA_TEMP_RCX: 30.0, DUCT_STC_RCX: 0.0}
 
-setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s   %(levelname)-8s %(message)s",
-                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 def check_date(current_time, timestamp_array):

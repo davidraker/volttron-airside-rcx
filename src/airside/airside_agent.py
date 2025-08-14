@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- {{{
+    # -*- coding: utf-8 -*- {{{
 # ===----------------------------------------------------------------------===
 #
 #                 Installable Component of Eclipse VOLTTRON
@@ -31,12 +31,23 @@ from datetime import datetime, timedelta as td
 from dateutil import parser
 from typing import Optional
 
-from volttron.client.messaging import (headers as headers_mod, topics)
-from volttron.client.vip.agent import Agent, Core
-from volttron.utils import format_timestamp, load_config, setup_logging, vip_main
-from volttron.utils.jsonapi import dumps
-from volttron.utils.jsonrpc import RemoteError
-from volttron.utils.math_utils import mean
+from importlib.metadata import distribution, PackageNotFoundError
+try:
+    distribution('volttron-core')
+    from volttron.client.logs import setup_logging
+    from volttron.client.messaging import (headers as headers_mod, topics)
+    from volttron.client.vip.agent import Agent, Core
+    from volttron.utils import format_timestamp, load_config, vip_main
+    from volttron.utils.jsonapi import dumps
+    from volttron.utils.jsonrpc import RemoteError
+    from volttron.utils.math_utils import mean
+except PackageNotFoundError:
+    from volttron.platform.agent.math_utils import mean
+    from volttron.platform.agent.utils import load_config, format_timestamp, setup_logging, vip_main
+    from volttron.platform.jsonapi import dumps
+    from volttron.platform.jsonrpc import RemoteError
+    from volttron.platform.messaging import (headers as headers_mod, topics)
+    from volttron.platform.vip.agent import Agent, Core
 
 from airside.diagnostics import common
 from airside.diagnostics.sat_aircx import SupplyTempAIRCx
@@ -45,8 +56,6 @@ from airside.diagnostics.stcpr_aircx import DuctStaticAIRCx
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s   %(levelname)-8s %(message)s",
-                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 class AirsideAgent(Agent):
