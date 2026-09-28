@@ -17,7 +17,7 @@ show_error_codes = true
 exclude = ['docs/']
 
 [tool.poetry]
-name = "volttron-applications-airside-rcx"
+name = "volttron-airside-rcx"
 version = "2.1.0"
 description = "The AirsideRCx Agent (automated identification of retro-commissioning measures) processes use a decision-tree structure to detect, diagnose, and automatically provide corrective actions for the problems associated with an AHU’s operation."
 authors = ["VOLTTRON Team <volttron@pnnl.gov>"]
@@ -58,7 +58,7 @@ Sphinx = "^4.5.0"
 sphinx-rtd-theme = "^1.0.0"
 
 [tool.poetry.scripts]
-volttron-actuator = "actuator.agent:main"
+volttron-airside-rcx = "airside.agent:main"
 
 [tool.yapf]
 based_on_style = "pep8"

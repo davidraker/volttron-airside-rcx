@@ -32,7 +32,7 @@ try:
 except PackageNotFoundError:
     from volttron.platform.agent.math_utils import mean
 
-from airside.diagnostics import common
+from . import common
 
 INCONSISTENT_DATE = -89.2
 INSUFFICIENT_DATA = -79.2

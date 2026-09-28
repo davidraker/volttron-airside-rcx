@@ -33,7 +33,7 @@ try:
 except PackageNotFoundError:
     from volttron.platform.agent.math_utils import mean
 
-from airside.diagnostics import common
+from . import common
 
 _log = logging.getLogger(__name__)
 

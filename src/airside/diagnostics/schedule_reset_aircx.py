@@ -33,7 +33,7 @@ try:
 except PackageNotFoundError:
     from volttron.platform.agent.math_utils import mean
 
-from airside.diagnostics import common
+from . import common
 
 DUCT_STC_RCX3 = "No Static Pressure Reset Dx"
 SA_TEMP_RCX3 = "No Supply-air Temperature Reset Dx"
