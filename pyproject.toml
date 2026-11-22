@@ -38,11 +38,11 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-volttron = ">=10.0.2rc0,<11.0"
+volttron-core = ">=2.0.0rc30"
 
 
 [tool.poetry.group.dev.dependencies]
-volttron-testing = "^0.4.0rc0"
+volttron-testing = ">=0.5.1rc4"
 pytest = "^6.2.5"
 pytest-cov = "^3.0.0"
 mock = "^4.0.3"
